@@ -3,7 +3,7 @@ import pickle
 from tqdm import tqdm
 import sys
 
-sys.path.extend(['../'])
+# sys.path.extend(['../'])
 from preprocess import pre_normalization
 
 training_subjects = [
@@ -151,7 +151,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='NTU-RGB-D Data Converter.')
     parser.add_argument('--data_path', default='../data/nturgbd_raw')
     parser.add_argument('--ignored_sample_path',
-                        default='../data/nturgbd_raw/NTU_RGBD_samples_with_missing_skeletons.txt')
+                        default=None)# default='../data/nturgbd_raw/NTU_RGBD_samples_with_missing_skeletons.txt')
     parser.add_argument('--out_folder', default='../data/ntu/')
 
     benchmark = ['xview']
@@ -164,6 +164,7 @@ if __name__ == '__main__':
             if not os.path.exists(out_path):
                 os.makedirs(out_path)
             print(b, p)
+            print(out_path)
             gendata(
                 arg.data_path,
                 out_path,

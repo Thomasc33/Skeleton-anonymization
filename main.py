@@ -21,7 +21,7 @@ import inspect
 import torch.backends.cudnn as cudnn
 
 # use wandb to track loss and accuracy
-import wandb
+# import wandb
 
 # loss used in our work
 def entropy(output):
@@ -653,12 +653,12 @@ class Processor():
 
             timer['statistics'] += self.split_time()
 
-        wandb.log({"action_acc": np.mean(action_acc_list)}, step=epoch) 
-        wandb.log({"recon_loss": np.mean(recon_loss_list)}, step=epoch) 
-        wandb.log({"action_loss": np.mean(action_loss_list)}, step=epoch) 
-        wandb.log({"privacy_loss": np.mean(privacy_loss_list)}, step=epoch) 
-        wandb.log({"privacy_acc": np.mean(privacy_acc_list)}, step=epoch)
-        wandb.log({"total_loss": np.mean(total_loss_list)}, step=epoch)
+        # wandb.log({"action_acc": np.mean(action_acc_list)}, step=epoch) 
+        # wandb.log({"recon_loss": np.mean(recon_loss_list)}, step=epoch) 
+        # wandb.log({"action_loss": np.mean(action_loss_list)}, step=epoch) 
+        # wandb.log({"privacy_loss": np.mean(privacy_loss_list)}, step=epoch) 
+        # wandb.log({"privacy_acc": np.mean(privacy_acc_list)}, step=epoch)
+        # wandb.log({"total_loss": np.mean(total_loss_list)}, step=epoch)
 
         # statistics of time consumption and loss
         proportion = {
@@ -697,7 +697,7 @@ class Processor():
                     action_label = action_label.long().cuda(self.output_device)
 
                     
-                    anonymized = self.anonymizer(data)
+                    anonymized = self.anonymizer(data.cuda())
                     action = self.eval_action_model(anonymized)
 
                     loss = action_classification_loss(action, action_label)
@@ -721,12 +721,12 @@ class Processor():
                     pickle.dump(score_dict, f)
 
             print('Eval Accuracy: ', accuracy, ' model: ', self.arg.model_saved_name)
-            wandb.log({
-                    "val_action_acc_top1": accuracy,
-                    "val_action_acc_top5": 100 * self.test_loader_action.dataset.top_k_action(score, 5),
-                    "val_action_loss": np.mean(loss_values),
-                    "val_recon_loss": np.square(anonymized.cpu().numpy() - data.cpu().numpy()).mean(), 
-                    }, step=epoch) 
+            # wandb.log({
+            #         "val_action_acc_top1": accuracy,
+            #         "val_action_acc_top5": 100 * self.test_loader_action.dataset.top_k_action(score, 5),
+            #         "val_action_loss": np.mean(loss_values),
+            #         "val_recon_loss": np.square(anonymized.cpu().numpy() - data.cpu().numpy()).mean(), 
+            #         }, step=epoch) 
 
             score_dict = dict(
                 zip(self.test_loader_action.dataset.sample_name, score))
@@ -760,7 +760,7 @@ class Processor():
                     labels.extend(privacy_label.cpu().tolist())
                     privacy_label = privacy_label.long().cuda(self.output_device)
                 
-                    anonymized = self.anonymizer(data)
+                    anonymized = self.anonymizer(data.cuda())
                     privacy = self.eval_privacy_model(anonymized)
                         
                     loss = entropy(privacy)
@@ -785,11 +785,11 @@ class Processor():
                     pickle.dump(score_dict, f)
 
             print('Eval Accuracy: ', accuracy, ' model: ', self.arg.model_saved_name)
-            wandb.log({
-                    "val_privacy_top1": accuracy,
-                    "val_privacy_top5": 100 * self.test_loader_privacy.dataset.top_k_privacy(score, 5),
-                    "val_privacy_loss": np.mean(loss_values),
-                    }, step=epoch)
+            # wandb.log({
+            #         "val_privacy_top1": accuracy,
+            #         "val_privacy_top5": 100 * self.test_loader_privacy.dataset.top_k_privacy(score, 5),
+            #         "val_privacy_loss": np.mean(loss_values),
+            #         }, step=epoch)
 
             score_dict = dict(
                 zip(self.test_loader_privacy.dataset.sample_name, score))
@@ -805,7 +805,7 @@ class Processor():
 
     def start(self):
         if self.arg.phase == 'train':
-            wandb.watch(self.anonymizer, log_freq=10)
+            # wandb.watch(self.anonymizer, log_freq=10)
             self.print_log('Parameters:\n{}\n'.format(str(vars(self.arg))))
             self.global_step = self.arg.start_epoch * len(self.data_loader['train']) / self.arg.batch_size
 
@@ -817,9 +817,9 @@ class Processor():
                 self.eval_action_validate(epoch=epoch, save_score=self.arg.save_score, loader_name=['test'])
                 self.eval_privacy_validate(epoch=epoch, save_score=self.arg.save_score, loader_name=['test'])
 
-                wandb.log({
-                    "val_area": self.accuracy_total[0] * (1-self.accuracy_total[1]), 
-                    }, step=epoch) 
+                # wandb.log({
+                #     "val_area": self.accuracy_total[0] * (1-self.accuracy_total[1]), 
+                #     }, step=epoch) 
 
             print('best accuracy: ', self.best_acc, ' model_name: ', self.arg.model_saved_name)
 
@@ -875,16 +875,16 @@ if __name__ == '__main__':
     init_seed(0) 
 
     #wandb initialization
-    wandb.init(project=arg.wandb, entity=arg.entity)
-    wandb.config.update(arg) 
+    # wandb.init(project=arg.wandb, entity=arg.entity)
+    # wandb.config.update(arg) 
 
 
-    wandb.define_metric("val_action_acc_top1", summary="max")
-    wandb.define_metric("val_action_acc_top5", summary="max")
-    wandb.define_metric("val_action_loss", summary="min")
-    wandb.define_metric("val_recon_loss", summary="min")
-    wandb.define_metric("val_privacy_top1", summary="min")
-    wandb.define_metric("val_privacy_top5", summary="min")
+    # wandb.define_metric("val_action_acc_top1", summary="max")
+    # wandb.define_metric("val_action_acc_top5", summary="max")
+    # wandb.define_metric("val_action_loss", summary="min")
+    # wandb.define_metric("val_recon_loss", summary="min")
+    # wandb.define_metric("val_privacy_top1", summary="min")
+    # wandb.define_metric("val_privacy_top5", summary="min")
 
     processor = Processor(arg)
     processor.start()
