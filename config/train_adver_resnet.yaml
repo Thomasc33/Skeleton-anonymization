@@ -29,7 +29,7 @@ model_args:
 
 action_model: model.shift_gcn.Model
 action_model_args:
-  num_class: 60
+  num_class: 120 # changed to 120 for ntu120
   num_point: 25
   num_person: 2
   graph: graph.ntu_rgb_d.Graph
@@ -38,7 +38,7 @@ action_model_args:
 
 privacy_model: model.shift_gcn.Model
 privacy_model_args:
-  num_class: 40
+  num_class: 106 # changed to 106 for ntu120
   num_point: 25
   num_person: 2
   graph: graph.ntu_rgb_d.Graph
@@ -78,4 +78,4 @@ beta: 10 # recon loss
 wandb: "project_name"
 entity: "user"
 
-dataset: "ntu60"
+dataset: "ntu120"

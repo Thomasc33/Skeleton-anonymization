@@ -24,6 +24,8 @@ import torch.backends.cudnn as cudnn
 # import wandb
 
 # loss used in our work
+
+
 def entropy(output):
     probs = torch.softmax(output, 1)
     log_probs = torch.log_softmax(output, 1)
@@ -188,10 +190,10 @@ def get_parser():
     parser.add_argument('--only_train_epoch', default=0)
     parser.add_argument('--warm_up_epoch', default=0)
 
-
-    
-    parser.add_argument('--wandb', type=str, default="Skeleton_anonymization", help='project name of wandb')
-    parser.add_argument('--entity', type=str, default="user", help='entity of wandb')
+    parser.add_argument(
+        '--wandb', type=str, default="Skeleton_anonymization", help='project name of wandb')
+    parser.add_argument('--entity', type=str,
+                        default="user", help='entity of wandb')
 
     parser.add_argument(
         '--anonymizer-model',
@@ -279,7 +281,8 @@ class Processor():
                     if answer == 'y':
                         shutil.rmtree(arg.model_saved_name)
                         print('Dir removed: ', arg.model_saved_name)
-                        input('Refresh the website of tensorboard by pressing any keys')
+                        input(
+                            'Refresh the website of tensorboard by pressing any keys')
                     else:
                         print('Dir not removed: ', arg.model_saved_name)
 
@@ -314,7 +317,7 @@ class Processor():
             shuffle=False,
             num_workers=self.arg.num_worker,
             drop_last=False,
-            worker_init_fn=init_seed) 
+            worker_init_fn=init_seed)
 
     def load_eval_action_model(self, weight):
         self.print_log("Using action weight %s" % weight)
@@ -342,37 +345,41 @@ class Processor():
         self.eval_privacy_model.eval()
 
     def load_model(self):
-        output_device = self.arg.device[0] if type(self.arg.device) is list else self.arg.device
-        self.output_device = output_device 
+        output_device = self.arg.device[0] if type(
+            self.arg.device) is list else self.arg.device
+        self.output_device = output_device
 
         AnonymizerModel = import_class(self.arg.anonymizer_model)
         shutil.copy2(inspect.getfile(AnonymizerModel), self.arg.work_dir)
 
-        self.anonymizer = AnonymizerModel(**self.arg.model_args).cuda(output_device)
-        self.action_classifier = import_class(self.arg.action_model)(**self.arg.action_model_args).cuda(self.output_device)
-        self.privacy_classifier = import_class(self.arg.privacy_model)(**self.arg.privacy_model_args).cuda(self.output_device)
+        self.anonymizer = AnonymizerModel(
+            **self.arg.model_args).cuda(output_device)
+        self.action_classifier = import_class(self.arg.action_model)(
+            **self.arg.action_model_args).cuda(self.output_device)
+        self.privacy_classifier = import_class(self.arg.privacy_model)(
+            **self.arg.privacy_model_args).cuda(self.output_device)
 
-        if self.arg.pretrained_action:
-            self.print_log("Using pretrained action model %s" %
-                           self.arg.pretrained_action)
-            self.action_classifier.load_state_dict(
-                torch.load(self.arg.pretrained_action))
+        # if self.arg.pretrained_action:
+        #     self.print_log("Using pretrained action model %s" %
+        #                    self.arg.pretrained_action)
+        #     self.action_classifier.load_state_dict(
+        #         torch.load(self.arg.pretrained_action))
 
-        if self.arg.pretrained_privacy:
-            self.print_log("Using pretrained privacy model %s" %
-                           self.arg.pretrained_privacy)
-            self.privacy_classifier.load_state_dict(
-                torch.load(self.arg.pretrained_privacy))
+        # if self.arg.pretrained_privacy:
+        #     self.print_log("Using pretrained privacy model %s" %
+        #                    self.arg.pretrained_privacy)
+        #     self.privacy_classifier.load_state_dict(
+        #         torch.load(self.arg.pretrained_privacy))
 
         self.action_classifier.eval()
 
         self.print_log("Loading models for evaluation")
-        self.load_eval_action_model(self.arg.pretrained_action)
-        self.load_eval_privacy_model(self.arg.pretrained_privacy_test)
+        # self.load_eval_action_model(self.arg.pretrained_action)
+        # self.load_eval_privacy_model(self.arg.pretrained_privacy_test)
 
         self.loss = nn.CrossEntropyLoss().cuda(output_device)
 
-        if self.arg.weights:
+        if self.arg.weights and self.arg.phase == 'train':
             # self.global_step = int(arg.weights[:-3].split('-')[-1])
             self.print_log('Load weights from {}.'.format(self.arg.weights))
             if '.pkl' in self.arg.weights:
@@ -420,7 +427,7 @@ class Processor():
     def load_optimizer(self):
         if self.arg.optimizer == 'SGD':
 
-            #Anonymizer
+            # Anonymizer
             params_dict_anon = dict(self.anonymizer.named_parameters())
             params_anon = []
 
@@ -433,16 +440,17 @@ class Processor():
                     weight_decay = 1e-3
                 elif 'Mask' in key:
                     weight_decay = 0.0
-                    
-                params_anon += [{'params': value, 'lr': self.arg.base_lr, 'lr_mult': lr_mult, 'decay_mult': decay_mult, 'weight_decay': weight_decay}]
+
+                params_anon += [{'params': value, 'lr': self.arg.base_lr, 'lr_mult': lr_mult,
+                                 'decay_mult': decay_mult, 'weight_decay': weight_decay}]
             self.anonymizer_optimizer = optim.SGD(
                 params_anon,
                 momentum=0.9,
                 nesterov=self.arg.nesterov)
 
-
-            #Privacy classifier
-            params_dict_privacy = dict(self.privacy_classifier.named_parameters())
+            # Privacy classifier
+            params_dict_privacy = dict(
+                self.privacy_classifier.named_parameters())
             params_privacy = []
 
             for key, value in params_dict_privacy.items():
@@ -454,13 +462,14 @@ class Processor():
                     weight_decay = 1e-3
                 elif 'Mask' in key:
                     weight_decay = 0.0
-                    
-                params_privacy += [{'params': value, 'lr': self.arg.base_lr, 'lr_mult': lr_mult, 'decay_mult': decay_mult, 'weight_decay': weight_decay}]
+
+                params_privacy += [{'params': value, 'lr': self.arg.base_lr,
+                                    'lr_mult': lr_mult, 'decay_mult': decay_mult, 'weight_decay': weight_decay}]
             self.privacy_classifier_optimizer = optim.SGD(
                 params_privacy,
                 momentum=0.9,
                 nesterov=self.arg.nesterov)
-            
+
         elif self.arg.optimizer == 'Adam':
             self.anonymizer_optimizer = optim.Adam(
                 self.anonymizer.parameters(),
@@ -490,7 +499,7 @@ class Processor():
                 lr = self.arg.base_lr * (epoch + 1) / self.arg.warm_up_epoch
             else:
                 lr = self.arg.base_lr * (
-                        0.1 ** np.sum(epoch >= np.array(self.arg.step)))
+                    0.1 ** np.sum(epoch >= np.array(self.arg.step)))
             for param_group in self.anonymizer_optimizer.param_groups:
                 param_group['lr'] = lr
             for param_group in self.privacy_classifier_optimizer.param_groups:
@@ -557,10 +566,9 @@ class Processor():
 
         action_acc_list.append(action_acc.item())
         privacy_acc_list.append(privacy_acc)
-        
-
 
     # maximization step
+
     def privacy_classifier_step(self, data, epoch, privacy_label, privacy_loss_list, privacy_acc_list, timer):
         self.privacy_classifier_optimizer.zero_grad()
 
@@ -578,8 +586,6 @@ class Processor():
 
         privacy_loss_list.append(privacy_loss.item())
         privacy_acc_list.append(privacy_acc)
-       
-        
 
     def train(self, epoch, save_model=False):
         self.anonymizer.train()
@@ -609,7 +615,6 @@ class Processor():
                     value.requires_grad = False
                     print(key + '-not require grad')
 
-
         for batch_idx, (data, privacy_label, action_label, index) in enumerate(process):
             self.global_step += 1
             # get data
@@ -621,10 +626,11 @@ class Processor():
 
             # forward
             self.start = time.time()
-            
-            if (self.global_step % (self.arg.minimization_steps + 1) == 0): #maximization(privacy) step
-                self.privacy_classifier_step(data, epoch, privacy_label, privacy_loss_list, privacy_acc_list, timer)
-            else: #minimization(anonimization) step
+
+            if (self.global_step % (self.arg.minimization_steps + 1) == 0):  # maximization(privacy) step
+                self.privacy_classifier_step(
+                    data, epoch, privacy_label, privacy_loss_list, privacy_acc_list, timer)
+            else:  # minimization(anonimization) step
                 self.anonymizer_step(data, epoch, privacy_label, action_label, recon_loss_list,
                                      action_loss_list, privacy_loss_list, action_acc_list, privacy_acc_list, total_loss_list, timer)
 
@@ -641,22 +647,21 @@ class Processor():
             mean_privacy_acc = np.mean(privacy_acc_list) if len(
                 privacy_acc_list) else np.nan
 
-            
-
             self.lr = self.anonymizer_optimizer.param_groups[0]['lr']
 
             if self.global_step % self.arg.log_interval == 0:
                 self.print_log(
                     '\tBatch({}/{}) done. recon_loss: {:.4f}, action_loss: {:.4f}, priv_loss: {:.4f}, action_acc:{:.4f}, priv_acc: {:.4f}  lr:{:.6f}  network_time: {:.4f}'.format(
-                        batch_idx, len(loader), mean_recon_loss, mean_action_loss,
+                        batch_idx, len(
+                            loader), mean_recon_loss, mean_action_loss,
                         mean_privacy_loss, mean_action_acc, mean_privacy_acc, self.lr, self.network_time))
 
             timer['statistics'] += self.split_time()
 
-        # wandb.log({"action_acc": np.mean(action_acc_list)}, step=epoch) 
-        # wandb.log({"recon_loss": np.mean(recon_loss_list)}, step=epoch) 
-        # wandb.log({"action_loss": np.mean(action_loss_list)}, step=epoch) 
-        # wandb.log({"privacy_loss": np.mean(privacy_loss_list)}, step=epoch) 
+        # wandb.log({"action_acc": np.mean(action_acc_list)}, step=epoch)
+        # wandb.log({"recon_loss": np.mean(recon_loss_list)}, step=epoch)
+        # wandb.log({"action_loss": np.mean(action_loss_list)}, step=epoch)
+        # wandb.log({"privacy_loss": np.mean(privacy_loss_list)}, step=epoch)
         # wandb.log({"privacy_acc": np.mean(privacy_acc_list)}, step=epoch)
         # wandb.log({"total_loss": np.mean(total_loss_list)}, step=epoch)
 
@@ -666,14 +671,13 @@ class Processor():
             for k, v in timer.items()
         }
 
-
         if save_model:
             state_dict = self.anonymizer.state_dict()
             weights = OrderedDict([[k.split('module.')[-1],
                                     v.cpu()] for k, v in state_dict.items()])
 
-            torch.save(weights, self.arg.model_saved_name + '-' + str(epoch) + '-' + str(int(self.global_step)) + '.pt')
-
+            torch.save(weights, self.arg.model_saved_name + '-' +
+                       str(epoch) + '-' + str(int(self.global_step)) + '.pt')
 
     def eval_action_validate(self, epoch, save_score=False, loader_name=['test'], wrong_file=None, result_file=None):
         if wrong_file is not None:
@@ -692,11 +696,10 @@ class Processor():
             process = tqdm(self.test_loader_action, dynamic_ncols=True)
             with torch.no_grad():
                 for batch_idx, (data, privacy_label, action_label, index) in enumerate(process):
-                    
+
                     labels.extend(action_label.cpu().tolist())
                     action_label = action_label.long().cuda(self.output_device)
 
-                    
                     anonymized = self.anonymizer(data.cuda())
                     action = self.eval_action_model(anonymized)
 
@@ -716,17 +719,18 @@ class Processor():
                 score_dict = dict(
                     zip(self.test_loader_action.dataset.sample_name, score))
 
-                with open('./work_dir/' + arg.Experiment_name + '/eval_results/best_acc' +'.pkl'.format(
+                with open('./work_dir/' + arg.Experiment_name + '/eval_results/best_acc' + '.pkl'.format(
                         epoch, accuracy), 'wb') as f:
                     pickle.dump(score_dict, f)
 
-            print('Eval Accuracy: ', accuracy, ' model: ', self.arg.model_saved_name)
+            print('Eval Accuracy: ', accuracy,
+                  ' model: ', self.arg.model_saved_name)
             # wandb.log({
             #         "val_action_acc_top1": accuracy,
             #         "val_action_acc_top5": 100 * self.test_loader_action.dataset.top_k_action(score, 5),
             #         "val_action_loss": np.mean(loss_values),
-            #         "val_recon_loss": np.square(anonymized.cpu().numpy() - data.cpu().numpy()).mean(), 
-            #         }, step=epoch) 
+            #         "val_recon_loss": np.square(anonymized.cpu().numpy() - data.cpu().numpy()).mean(),
+            #         }, step=epoch)
 
             score_dict = dict(
                 zip(self.test_loader_action.dataset.sample_name, score))
@@ -745,7 +749,8 @@ class Processor():
             f_w = open(wrong_file, 'w')
         if result_file is not None:
             f_r = open(result_file, 'w')
-        self.eval_privacy_model.eval()
+        if self.eval_privacy_model is not None:
+            self.eval_privacy_model.eval()
         self.print_log(f'Privacy: eval test')
         self.print_log('Eval epoch: {}'.format(epoch + 1))
         for ln in loader_name:
@@ -759,17 +764,16 @@ class Processor():
                 for batch_idx, (data, privacy_label, action_label, index) in enumerate(process):
                     labels.extend(privacy_label.cpu().tolist())
                     privacy_label = privacy_label.long().cuda(self.output_device)
-                
+
                     anonymized = self.anonymizer(data.cuda())
                     privacy = self.eval_privacy_model(anonymized)
-                        
+
                     loss = entropy(privacy)
                     loss_values.append(loss.item())
                     privacy_batches.append(privacy.data.cpu().numpy())
 
                     step += 1
-                
-        
+
             score = np.concatenate(privacy_batches)
 
             accuracy = self.test_loader_privacy.dataset.top_k_privacy(score, 1)
@@ -780,11 +784,12 @@ class Processor():
                 score_dict = dict(
                     zip(self.test_loader_privacy.dataset.sample_name, score))
 
-                with open('./work_dir/' + arg.Experiment_name + '/eval_results/best_acc' +'.pkl'.format(
+                with open('./work_dir/' + arg.Experiment_name + '/eval_results/best_acc' + '.pkl'.format(
                         epoch, accuracy), 'wb') as f:
                     pickle.dump(score_dict, f)
 
-            print('Eval Accuracy: ', accuracy, ' model: ', self.arg.model_saved_name)
+            print('Eval Accuracy: ', accuracy,
+                  ' model: ', self.arg.model_saved_name)
             # wandb.log({
             #         "val_privacy_top1": accuracy,
             #         "val_privacy_top5": 100 * self.test_loader_privacy.dataset.top_k_privacy(score, 5),
@@ -807,21 +812,25 @@ class Processor():
         if self.arg.phase == 'train':
             # wandb.watch(self.anonymizer, log_freq=10)
             self.print_log('Parameters:\n{}\n'.format(str(vars(self.arg))))
-            self.global_step = self.arg.start_epoch * len(self.data_loader['train']) / self.arg.batch_size
+            self.global_step = self.arg.start_epoch * \
+                len(self.data_loader['train']) / self.arg.batch_size
 
             for epoch in range(self.arg.start_epoch, self.arg.num_epoch):
 
                 self.train(epoch, save_model=True)
 
                 self.accuracy_total = []
-                self.eval_action_validate(epoch=epoch, save_score=self.arg.save_score, loader_name=['test'])
-                self.eval_privacy_validate(epoch=epoch, save_score=self.arg.save_score, loader_name=['test'])
+                self.eval_action_validate(
+                    epoch=epoch, save_score=self.arg.save_score, loader_name=['test'])
+                self.eval_privacy_validate(
+                    epoch=epoch, save_score=self.arg.save_score, loader_name=['test'])
 
                 # wandb.log({
-                #     "val_area": self.accuracy_total[0] * (1-self.accuracy_total[1]), 
-                #     }, step=epoch) 
+                #     "val_area": self.accuracy_total[0] * (1-self.accuracy_total[1]),
+                #     }, step=epoch)
 
-            print('best accuracy: ', self.best_acc, ' model_name: ', self.arg.model_saved_name)
+            print('best accuracy: ', self.best_acc,
+                  ' model_name: ', self.arg.model_saved_name)
 
         elif self.arg.phase == 'test':
             if not self.arg.test_feeder_args['debug']:
@@ -836,8 +845,10 @@ class Processor():
             self.print_log('Weights: {}.'.format(self.arg.weights))
 
             self.accuracy_total = []
-            self.eval_action_validate(epoch=0, save_score=self.arg.save_score, loader_name=['test'], wrong_file=wf, result_file=rf)
-            self.eval_privacy_validate(epoch=0, save_score=self.arg.save_score, loader_name=['test'], wrong_file=wf, result_file=rf)
+            self.eval_action_validate(epoch=0, save_score=self.arg.save_score, loader_name=[
+                                      'test'], wrong_file=wf, result_file=rf)
+            self.eval_privacy_validate(epoch=0, save_score=self.arg.save_score, loader_name=[
+                                       'test'], wrong_file=wf, result_file=rf)
             self.print_log('Done.\n')
 
 
@@ -848,6 +859,7 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
 
 def import_class(name):
     components = name.split('.')
@@ -872,12 +884,11 @@ if __name__ == '__main__':
         parser.set_defaults(**default_arg)
 
     arg = parser.parse_args()
-    init_seed(0) 
+    init_seed(0)
 
-    #wandb initialization
+    # wandb initialization
     # wandb.init(project=arg.wandb, entity=arg.entity)
-    # wandb.config.update(arg) 
-
+    # wandb.config.update(arg)
 
     # wandb.define_metric("val_action_acc_top1", summary="max")
     # wandb.define_metric("val_action_acc_top5", summary="max")

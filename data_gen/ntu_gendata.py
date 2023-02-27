@@ -1,3 +1,5 @@
+import os
+import numpy as np
 import argparse
 import pickle
 from tqdm import tqdm
@@ -7,16 +9,17 @@ import sys
 from preprocess import pre_normalization
 
 training_subjects = [
-    1, 2, 4, 5, 8, 9, 13, 14, 15, 16, 17, 18, 19, 25, 27, 28, 31, 34, 35, 38
+    7, 96, 33, 3, 46, 74, 19, 54, 21, 80,
+    71, 49, 14, 67, 8, 40, 84, 73, 52, 60,
+    87, 30, 55, 66, 104, 10, 83, 64, 48, 68,
+    12, 32, 16, 56, 2, 15, 53, 39, 24, 69,
+    70, 92, 11, 26, 94
 ]
 training_cameras = [2, 3]
 max_body_true = 2
 max_body_kinect = 4
 num_joint = 25
 max_frame = 300
-
-import numpy as np
-import os
 
 
 def read_skeleton_filter(file):
@@ -64,7 +67,8 @@ def get_nonzero_std(s):  # tvc
     index = s.sum(-1).sum(-1) != 0  # select valid frames
     s = s[index]
     if len(s) != 0:
-        s = s[:, :, 0].std() + s[:, :, 1].std() + s[:, :, 2].std()  # three channels
+        s = s[:, :, 0].std() + s[:, :, 1].std() + \
+            s[:, :, 2].std()  # three channels
     else:
         s = 0
     return s
@@ -98,6 +102,8 @@ def gendata(data_path, out_path, ignored_sample_path=None, benchmark='xview', pa
             ]
     else:
         ignored_samples = []
+
+    # Label Generation
     sample_name = []
     sample_label = []
     sample_privacy = []
@@ -137,10 +143,13 @@ def gendata(data_path, out_path, ignored_sample_path=None, benchmark='xview', pa
     with open('{}/{}_label_privacy.pkl'.format(out_path, part), 'wb') as f:
         pickle.dump((sample_name, list(sample_privacy)), f)
 
-    fp = np.zeros((len(sample_label), 3, max_frame, num_joint, max_body_true), dtype=np.float32)
+    # Joint Data Generation
+    fp = np.zeros((len(sample_label), 3, max_frame,
+                  num_joint, max_body_true), dtype=np.float32)
 
     for i, s in enumerate(tqdm(sample_name)):
-        data = read_xyz(os.path.join(data_path, s), max_body=max_body_kinect, num_joint=num_joint)
+        data = read_xyz(os.path.join(data_path, s),
+                        max_body=max_body_kinect, num_joint=num_joint)
         fp[i, :, 0:data.shape[1], :, :] = data
 
     fp = pre_normalization(fp)
@@ -151,7 +160,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='NTU-RGB-D Data Converter.')
     parser.add_argument('--data_path', default='../data/nturgbd_raw')
     parser.add_argument('--ignored_sample_path',
-                        default=None)# default='../data/nturgbd_raw/NTU_RGBD_samples_with_missing_skeletons.txt')
+                        default=None)  # default='../data/nturgbd_raw/NTU_RGBD_samples_with_missing_skeletons.txt')
     parser.add_argument('--out_folder', default='../data/ntu/')
 
     benchmark = ['xview']
