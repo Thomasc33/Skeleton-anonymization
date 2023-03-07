@@ -19,6 +19,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
 import random
 import inspect
 import torch.backends.cudnn as cudnn
+import regex as re
+
 
 # use wandb to track loss and accuracy
 # import wandb
@@ -120,7 +122,7 @@ def get_parser():
     parser.add_argument(
         '--num-worker',
         type=int,
-        default=32,
+        default=16,
         help='the number of worker for data loader')
     parser.add_argument(
         '--train-feeder-args',
@@ -319,6 +321,11 @@ class Processor():
             drop_last=False,
             worker_init_fn=init_seed)
 
+        with open('test_action.pkl', 'wb') as f:
+            pickle.dump(self.test_loader_action, f)
+        with open('test_privacy.pkl', 'wb') as f:
+            pickle.dump(self.test_loader_privacy, f)
+
     def load_eval_action_model(self, weight):
         self.print_log("Using action weight %s" % weight)
         self.eval_action_model = import_class(self.arg.action_model)(
@@ -359,27 +366,27 @@ class Processor():
         self.privacy_classifier = import_class(self.arg.privacy_model)(
             **self.arg.privacy_model_args).cuda(self.output_device)
 
-        # if self.arg.pretrained_action:
-        #     self.print_log("Using pretrained action model %s" %
-        #                    self.arg.pretrained_action)
-        #     self.action_classifier.load_state_dict(
-        #         torch.load(self.arg.pretrained_action))
+        if self.arg.pretrained_action:
+            self.print_log("Using pretrained action model %s" %
+                           self.arg.pretrained_action)
+            self.action_classifier.load_state_dict(
+                torch.load(self.arg.pretrained_action))
 
-        # if self.arg.pretrained_privacy:
-        #     self.print_log("Using pretrained privacy model %s" %
-        #                    self.arg.pretrained_privacy)
-        #     self.privacy_classifier.load_state_dict(
-        #         torch.load(self.arg.pretrained_privacy))
+        if self.arg.pretrained_privacy:
+            self.print_log("Using pretrained privacy model %s" %
+                           self.arg.pretrained_privacy)
+            self.privacy_classifier.load_state_dict(
+                torch.load(self.arg.pretrained_privacy))
 
         self.action_classifier.eval()
 
         self.print_log("Loading models for evaluation")
-        # self.load_eval_action_model(self.arg.pretrained_action)
-        # self.load_eval_privacy_model(self.arg.pretrained_privacy_test)
+        self.load_eval_action_model(self.arg.pretrained_action)
+        self.load_eval_privacy_model(self.arg.pretrained_privacy_test)
 
         self.loss = nn.CrossEntropyLoss().cuda(output_device)
 
-        if self.arg.weights and self.arg.phase == 'train':
+        if self.arg.weights:  # and self.arg.phase == 'train':
             # self.global_step = int(arg.weights[:-3].split('-')[-1])
             self.print_log('Load weights from {}.'.format(self.arg.weights))
             if '.pkl' in self.arg.weights:
@@ -408,6 +415,17 @@ class Processor():
                     print('  ' + d)
                 state.update(weights)
                 self.anonymizer.load_state_dict(state)
+
+        file_name = arg.config
+        if 'unet' in file_name:
+            file_name = 'unet.pkl'
+        elif 'resnet' in file_name:
+            file_name = 'resnet.pkl'
+        else:
+            # remove non alphanumeric characters
+            file_name = re.sub(r'\W+', '', file_name) + '.pkl'
+        with open(file_name, 'wb') as f:
+            pickle.dump(self.anonymizer, f)
 
         if type(self.arg.device) is list:
             if len(self.arg.device) > 1:

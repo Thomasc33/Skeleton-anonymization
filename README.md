@@ -1,65 +1,49 @@
-# Anonymization for Skeleton Action Recognition
+# Replications
 
-This repository is the official implementation of **'Anonymization for Skeleton Action Recognition'** (AAAI2023)
-
-## Anonymization framework
-
- <div align="center">
-    <img src="resource/framework.jpg">
-</div>
-
-## Prerequisites
-
-- Python3
-- [Pytorch](https://pytorch.org/)
-- Run `pip install -r requirements.txt` for installing other python libraries
-- We use [Wandb](https://wandb.ai/site) for experiment tracking
-
-## Compile cuda extensions
-
+### The conda environment used to compile Shift-GCN dependencies
+```bash
+conda env create -f shift_environment.yml
 ```
-cd ./model/Temporal_shift
+
+### Build Shift GCN Requirements
+```bash
+cd model/Temporal_shift
 bash run.sh
 ```
 
-## Data Preparation
+### The main conda environment
 
-- We use [NTU RGB+D](https://github.com/shahroudy/NTURGB-D) skeleton-only datasets (`nturgbd_skeletons_s001_to_s017.zip`).
-- After downloading datasets, generate the skeleton data with this command.
-
-```
-python data_gen/ntu_gendata.py --data_path <path to nturgbd+d_skeletons>
+```bash
+conda env create -f environment.yml
 ```
 
-## Training
+### Generate data
+Download the NTU60+120 skeletons from the link provided in [this repo](https://github.com/shahroudy/NTURGB-D)
 
-To train the models in the paper, run this command:
+[0-60](https://drive.google.com/open?id=1CUZnBtYwifVXS21yVg62T-vrPVayso5H), [60-120](https://drive.google.com/open?id=1tEbuaEqMxAV7dNc4fqu1O4M7mC6CJ50w)
 
-```train
-python main.py --config ./config/train_adver_resnet.yaml
-python main.py --config ./config/train_adver_unet.yaml
+Export that zip file to somewhere (Defualt is './data/nturgbd_raw')
+```bash
+python data_gen --data_path ./data/nturgbd_raw
 ```
 
-## Pre-trained Models
+### Executing the code
+Run one of these. If you just want the pickling, then run the first two
 
-We provide two pre-trained model with NTU60. You can download pretrained models here:
+Download [pretrained_unet.pt](https://drive.google.com/file/d/1U9NLJdkRVXBcXsT8lbyghJivhLci3L6M/view?usp=share_link) and put it in './save_models/'
 
-- [Google Drive](https://drive.google.com/drive/folders/1R7fooJbVv2an42Xdt2Phvi8I3GTB5CxG?usp=sharing)
 
-| Model                              | Anonymizer network | Re-iden. acc. | Action acc. |
-| ---------------------------------- | ------------------ | ------------- | ----------- |
-| ./save_models/pretrained_resnet.pt | ResNet             | 4.20%         | 91.75%      |
-| ./save_models/pretrained_unet.pt   | UNet               | 5.70%         | 91.45%      |
-
-To test the pre-trained models given above, run this command:
-
-```train
-python main.py --config ./config/train_adver_resnet.yaml
-python main.py --config ./config/train_adver_unet.yaml
+```bash
+python main.py --config ./config/test_adver_resnet.yaml --device 0
+python main.py --config ./config/test_adver_unet.yaml --device 0
+python main.py --config ./config/train_adver_unet.yaml --device 0
+python main.py --config ./config/train_adver_resnet.yaml --device 0
 ```
 
-Also, we provide more privacy pre-trained models for test privacy model. You can find at `/save_models/ntu_pretrained_x`.
+# Modifications
 
-## Acknowledgements
-
-This code is based on [Shift-GCN](https://github.com/kchengiva/Shift-GCN). Also, we use [U-Net](https://github.com/milesial/Pytorch-UNet) for anonymizer network. Thanks to the original authors!☺️
+- Made code actually run :) (There were some spacing errors/typos)
+- Modified data code to operate on NTU120
+- Pickle export the anonymizer models
+- Pickle export test action and privacy loader
+- Created "Run Anonymizer Model.ipynb" to get the anonymized skeleton in form of "X_unet.pkl" and "X_resnet.pkl"

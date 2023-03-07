@@ -1,3 +1,6 @@
+*.pkl
+# Below is the original .gitignore file from the original repository. We have added some lines to ignore some files and directories that are not needed for our project.
+# I also allows the pretrained_resnet.pt
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,visualstudiocode
@@ -199,6 +202,8 @@ save_models/*
 !save_models/ntu_pretrained_2.pt
 !save_models/ntu_pretrained_3.pt
 !save_models/ntu_pretrained_4.pt
+!save_models/pretrained_resnet.pt
+
 
 # !save_models/pretrained_resnet.pt
 # !save_models/pretrained_unet.pt
