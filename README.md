@@ -1,5 +1,7 @@
 # Replications
 
+All pickle files generated from this repo are available on [google drive](https://drive.google.com/drive/folders/1PXky9r0hA1LfyTpXKwE4KHiCCmX9-1Df?usp=sharing)
+
 ### The conda environment used to compile Shift-GCN dependencies
 ```bash
 conda env create -f shift_environment.yml
